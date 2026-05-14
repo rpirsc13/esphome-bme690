@@ -261,7 +261,7 @@ sensor:
       name: "Compensated Humidity"
 ```
 
-### Text Sensor
+### Text Sensors
 
 #### `iaq_accuracy` -- IAQ Accuracy (Text)
 
@@ -272,6 +272,27 @@ text_sensor:
   - platform: bme68x_bsec3
     iaq_accuracy:
       name: "IAQ Accuracy"
+```
+
+#### `iaq_description` -- Air Quality Description
+
+- **Description:** Human-readable air quality label derived from the IAQ value. Useful for dashboards, notifications, and automations.
+
+| IAQ Range | Description |
+|-----------|-------------|
+| 0--50 | Excellent |
+| 51--100 | Good |
+| 101--150 | Lightly Polluted |
+| 151--200 | Moderately Polluted |
+| 201--250 | Heavily Polluted |
+| 251--350 | Severely Polluted |
+| 351--500 | Extremely Polluted |
+
+```yaml
+text_sensor:
+  - platform: bme68x_bsec3
+    iaq_description:
+      name: "Air Quality"
 ```
 
 ## How It Works

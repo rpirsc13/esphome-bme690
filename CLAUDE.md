@@ -145,11 +145,12 @@ The Bosch reference code subscribes to exactly these outputs in IAQ mode:
 
 **NOT available in IAQ mode**: BREATH_VOC_EQUIVALENT (4), COMPENSATED_GAS (18)
 
-### Text Sensor (1)
+### Text Sensors (2)
 
 | Sensor | Values |
 |---|---|
 | `iaq_accuracy` | "Stabilizing" / "Uncertain" / "Calibrating" / "Calibrated" |
+| `iaq_description` | "Excellent" / "Good" / "Lightly Polluted" / "Moderately Polluted" / "Heavily Polluted" / "Severely Polluted" / "Extremely Polluted" |
 
 ## Hardware Reference
 

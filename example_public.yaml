@@ -64,3 +64,5 @@ text_sensor:
   - platform: bme68x_bsec3
     iaq_accuracy:
       name: "IAQ Accuracy"
+    iaq_description:
+      name: "Air Quality"
