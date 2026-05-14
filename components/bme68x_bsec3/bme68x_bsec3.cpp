@@ -6,6 +6,7 @@
  * outputs. State is saved to NVS periodically for calibration persistence.
  */
 
+#include "esphome/core/defines.h"
 #include "bme68x_bsec3.h"
 #include "esphome/core/log.h"
 #include "esphome/core/preferences.h"
@@ -163,7 +164,7 @@ void BME68xBSEC3Component::subscribe_outputs_() {
       break;
   }
 
-  bsec_sensor_configuration_t requested[13];
+  bsec_sensor_configuration_t requested[14];
   uint8_t n_requested = 0;
 
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_RAW_PRESSURE};
@@ -175,6 +176,7 @@ void BME68xBSEC3Component::subscribe_outputs_() {
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_STATIC_IAQ};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_CO2_EQUIVALENT};
+  requested[n_requested++] = {sample_rate, BSEC_OUTPUT_BREATH_VOC_EQUIVALENT};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_STABILIZATION_STATUS};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_RUN_IN_STATUS};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_GAS_PERCENTAGE};
@@ -424,35 +426,39 @@ void BME68xBSEC3Component::process_sensor_data_(int64_t time_ns, struct bme69x_d
   new_data.valid = true;
 
   // Copy to shared struct under mutex
-  if (xSemaphoreTake(this->data_mutex_, pdMS_TO_TICKS(100)) == pdTRUE) {
-    this->sensor_data_ = new_data;
+  if (this->data_mutex_ != nullptr) {
+    xSemaphoreTake(this->data_mutex_, portMAX_DELAY);
+  }
+  this->sensor_data_ = new_data;
+  this->data_available_ = true;
+  if (this->data_mutex_ != nullptr) {
     xSemaphoreGive(this->data_mutex_);
   }
 }
 
 // --- Main Loop (publishes sensor values) ---
 
+void BME68xBSEC3Component::loop() {
+}
+
 void BME68xBSEC3Component::update() {
-  SensorData data{};
-
-  if (this->data_mutex_ == nullptr) return;
-
-  if (xSemaphoreTake(this->data_mutex_, pdMS_TO_TICKS(50)) == pdTRUE) {
-    if (this->sensor_data_.valid) {
-      data = this->sensor_data_;
-      this->sensor_data_.valid = false;
-    }
-    xSemaphoreGive(this->data_mutex_);
-  }
-
-  if (!data.valid) {
-    ESP_LOGD(TAG, "No new BSEC data available yet");
+  if (!this->data_available_) {
     return;
   }
 
-  ESP_LOGI(TAG, "BSEC data: T=%.1f H=%.1f P=%.1f IAQ=%.0f (acc=%d) CO2=%.0f VOC=%.2f",
+  // Copy data under mutex protection, then release immediately
+  SensorData data;
+  if (this->data_mutex_ != nullptr) {
+    xSemaphoreTake(this->data_mutex_, portMAX_DELAY);
+  }
+  data = this->sensor_data_;
+  if (this->data_mutex_ != nullptr) {
+    xSemaphoreGive(this->data_mutex_);
+  }
+
+  ESP_LOGI(TAG, "T=%.1f H=%.1f P=%.1f IAQ=%.0f acc=%d",
            data.compensated_temperature, data.compensated_humidity, data.pressure,
-           data.iaq, data.iaq_accuracy, data.co2_equivalent, data.breath_voc_equivalent);
+           data.iaq, data.iaq_accuracy);
 
 #ifdef USE_SENSOR
   if (this->temperature_sensor_ != nullptr)

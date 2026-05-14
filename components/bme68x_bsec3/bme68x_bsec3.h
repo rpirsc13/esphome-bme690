@@ -41,6 +41,7 @@ enum OperatingAge : uint8_t {
 class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
  public:
   void setup() override;
+  void loop() override;
   void update() override;
   void dump_config() override;
   float get_setup_priority() const override;
@@ -119,6 +120,7 @@ class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
     bool valid{false};
   };
   SensorData sensor_data_{};
+  volatile bool data_available_{false};
   SemaphoreHandle_t data_mutex_{nullptr};
   TaskHandle_t task_handle_{nullptr};
 
@@ -133,6 +135,7 @@ class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
   // State persistence
   uint32_t state_save_interval_ms_{21600000};  // 6 hours
   uint32_t last_state_save_ms_{0};
+
 
   // Sensors
 #ifdef USE_SENSOR
