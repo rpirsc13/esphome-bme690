@@ -176,7 +176,9 @@ void BME68xBSEC3Component::subscribe_outputs_() {
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_STATIC_IAQ};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_CO2_EQUIVALENT};
-  requested[n_requested++] = {sample_rate, BSEC_OUTPUT_BREATH_VOC_EQUIVALENT};
+  // Note: BSEC_OUTPUT_BREATH_VOC_EQUIVALENT not subscribed — BSEC3 derives
+  // breath VOC from CO2 equivalent internally, no separate subscription needed.
+  // Adding it causes bsec_update_subscription() to fail.
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_STABILIZATION_STATUS};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_RUN_IN_STATUS};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_GAS_PERCENTAGE};

@@ -192,3 +192,7 @@ async def to_code(config):
         )
     cg.add_build_flag(f"-L{lib_path}")
     cg.add_build_flag("-lalgobsec")
+
+    # Increase main task stack for API encryption + sensor publishing
+    from esphome.components.esp32 import add_idf_sdkconfig_option
+    add_idf_sdkconfig_option("CONFIG_ESP_MAIN_TASK_STACK_SIZE", 16384)
