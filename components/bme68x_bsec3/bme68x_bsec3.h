@@ -75,6 +75,7 @@ class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
 #endif
 #ifdef USE_TEXT_SENSOR
   void set_iaq_accuracy_text_sensor(text_sensor::TextSensor *s) { this->iaq_accuracy_text_sensor_ = s; }
+  void set_iaq_description_text_sensor(text_sensor::TextSensor *s) { this->iaq_description_text_sensor_ = s; }
 #endif
 
  protected:
@@ -157,6 +158,7 @@ class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
 #endif
 #ifdef USE_TEXT_SENSOR
   text_sensor::TextSensor *iaq_accuracy_text_sensor_{nullptr};
+  text_sensor::TextSensor *iaq_description_text_sensor_{nullptr};
 #endif
 };
 

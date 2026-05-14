@@ -8,6 +8,7 @@ from . import BME68xBSEC3Component
 
 CONF_BME68X_BSEC3_ID = "bme68x_bsec3_id"
 CONF_IAQ_ACCURACY = "iaq_accuracy"
+CONF_IAQ_DESCRIPTION = "iaq_description"
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -15,6 +16,9 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_IAQ_ACCURACY): text_sensor.text_sensor_schema(
             entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
             icon="mdi:checkbox-marked-circle-outline",
+        ),
+        cv.Optional(CONF_IAQ_DESCRIPTION): text_sensor.text_sensor_schema(
+            icon="mdi:air-filter",
         ),
     }
 )
@@ -26,3 +30,7 @@ async def to_code(config):
     if CONF_IAQ_ACCURACY in config:
         sens = await text_sensor.new_text_sensor(config[CONF_IAQ_ACCURACY])
         cg.add(parent.set_iaq_accuracy_text_sensor(sens))
+
+    if CONF_IAQ_DESCRIPTION in config:
+        sens = await text_sensor.new_text_sensor(config[CONF_IAQ_DESCRIPTION])
+        cg.add(parent.set_iaq_description_text_sensor(sens))

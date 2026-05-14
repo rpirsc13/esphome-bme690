@@ -505,6 +505,24 @@ void BME68xBSEC3Component::update() {
     }
     this->iaq_accuracy_text_sensor_->publish_state(accuracy_text);
   }
+  if (this->iaq_description_text_sensor_ != nullptr) {
+    const char *desc;
+    if (data.iaq <= 50)
+      desc = "Excellent";
+    else if (data.iaq <= 100)
+      desc = "Good";
+    else if (data.iaq <= 150)
+      desc = "Lightly Polluted";
+    else if (data.iaq <= 200)
+      desc = "Moderately Polluted";
+    else if (data.iaq <= 250)
+      desc = "Heavily Polluted";
+    else if (data.iaq <= 350)
+      desc = "Severely Polluted";
+    else
+      desc = "Extremely Polluted";
+    this->iaq_description_text_sensor_->publish_state(desc);
+  }
 #endif
 }
 
