@@ -489,9 +489,9 @@ void BME68xBSEC3Component::update() {
   if (this->tvoc_equivalent_sensor_ != nullptr)
     this->tvoc_equivalent_sensor_->publish_state(data.tvoc_equivalent);
   if (this->compensated_temperature_sensor_ != nullptr)
-    this->compensated_temperature_sensor_->publish_state(data.compensated_temperature);
+    this->compensated_temperature_sensor_->publish_state(data.temperature);
   if (this->compensated_humidity_sensor_ != nullptr)
-    this->compensated_humidity_sensor_->publish_state(data.compensated_humidity);
+    this->compensated_humidity_sensor_->publish_state(data.humidity);
 #endif
 #ifdef USE_TEXT_SENSOR
   if (this->iaq_accuracy_text_sensor_ != nullptr) {

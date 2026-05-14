@@ -237,28 +237,28 @@ sensor:
 
 ### Diagnostic Sensors
 
-#### `compensated_temperature` -- Compensated Temperature (Diagnostic)
+#### `raw_temperature` -- Raw Temperature (Diagnostic)
 
 - **Unit:** degrees C
-- **Description:** Same measurement as `temperature`, categorized as a diagnostic entity in Home Assistant. Useful if you want temperature in the diagnostics panel rather than as a primary sensor.
+- **Description:** Uncompensated temperature directly from the BME690. Includes sensor self-heating from the gas measurement heater, so it reads higher than the compensated `temperature` sensor. Useful for comparing raw vs compensated values or diagnosing temperature offset issues.
 
 ```yaml
 sensor:
   - platform: bme68x_bsec3
-    compensated_temperature:
-      name: "Compensated Temperature"
+    raw_temperature:
+      name: "Raw Temperature"
 ```
 
-#### `compensated_humidity` -- Compensated Humidity (Diagnostic)
+#### `raw_humidity` -- Raw Humidity (Diagnostic)
 
 - **Unit:** %
-- **Description:** Same measurement as `humidity`, categorized as a diagnostic entity in Home Assistant.
+- **Description:** Uncompensated relative humidity directly from the BME690. Cross-influenced by the gas sensor heater. The compensated `humidity` sensor corrects for this effect.
 
 ```yaml
 sensor:
   - platform: bme68x_bsec3
-    compensated_humidity:
-      name: "Compensated Humidity"
+    raw_humidity:
+      name: "Raw Humidity"
 ```
 
 ### Text Sensors

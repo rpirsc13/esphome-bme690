@@ -34,8 +34,8 @@ CONF_CO2_EQUIVALENT = "co2_equivalent"
 CONF_BREATH_VOC_EQUIVALENT = "breath_voc_equivalent"
 CONF_GAS_PERCENTAGE = "gas_percentage"
 CONF_TVOC_EQUIVALENT = "tvoc_equivalent"
-CONF_COMPENSATED_TEMPERATURE = "compensated_temperature"
-CONF_COMPENSATED_HUMIDITY = "compensated_humidity"
+CONF_RAW_TEMPERATURE = "raw_temperature"
+CONF_RAW_HUMIDITY = "raw_humidity"
 
 UNIT_IAQ = "IAQ"
 ICON_ACCURACY = "mdi:checkbox-marked-circle-outline"
@@ -111,14 +111,14 @@ CONFIG_SCHEMA = cv.Schema(
             device_class=DEVICE_CLASS_VOLATILE_ORGANIC_COMPOUNDS_PARTS,
             icon="mdi:cloud-outline",
         ),
-        cv.Optional(CONF_COMPENSATED_TEMPERATURE): sensor.sensor_schema(
+        cv.Optional(CONF_RAW_TEMPERATURE): sensor.sensor_schema(
             unit_of_measurement=UNIT_CELSIUS,
             accuracy_decimals=1,
             device_class=DEVICE_CLASS_TEMPERATURE,
             state_class=STATE_CLASS_MEASUREMENT,
             entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
         ),
-        cv.Optional(CONF_COMPENSATED_HUMIDITY): sensor.sensor_schema(
+        cv.Optional(CONF_RAW_HUMIDITY): sensor.sensor_schema(
             unit_of_measurement=UNIT_PERCENT,
             accuracy_decimals=1,
             device_class=DEVICE_CLASS_HUMIDITY,
@@ -144,8 +144,8 @@ async def to_code(config):
         (CONF_BREATH_VOC_EQUIVALENT, parent.set_breath_voc_equivalent_sensor),
         (CONF_GAS_PERCENTAGE, parent.set_gas_percentage_sensor),
         (CONF_TVOC_EQUIVALENT, parent.set_tvoc_equivalent_sensor),
-        (CONF_COMPENSATED_TEMPERATURE, parent.set_compensated_temperature_sensor),
-        (CONF_COMPENSATED_HUMIDITY, parent.set_compensated_humidity_sensor),
+        (CONF_RAW_TEMPERATURE, parent.set_compensated_temperature_sensor),
+        (CONF_RAW_HUMIDITY, parent.set_compensated_humidity_sensor),
     ]:
         if conf_key in config:
             sens = await sensor.new_sensor(config[conf_key])

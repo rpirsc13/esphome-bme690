@@ -54,11 +54,11 @@ sensor:
       name: "TVOC"
     gas_percentage:
       name: "Gas Percentage"
-    # Optional: raw (uncompensated) temperature and humidity
-    # compensated_temperature:
-    #   name: "Compensated Temperature"
-    # compensated_humidity:
-    #   name: "Compensated Humidity"
+    # Optional: raw (uncompensated) temperature and humidity — includes sensor self-heating
+    # raw_temperature:
+    #   name: "Raw Temperature"
+    # raw_humidity:
+    #   name: "Raw Humidity"
 
 text_sensor:
   - platform: bme68x_bsec3

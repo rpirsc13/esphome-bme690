@@ -119,8 +119,8 @@ API encryption combined with multiple sensor publishes can overflow the W5500 Et
 | `breath_voc_equivalent` | ppm | **Not available in IAQ mode** — always 0. Kept for BSEC2 compatibility. |
 | `tvoc_equivalent` | ppb | Total VOC equivalent (LP mode only) |
 | `gas_percentage` | % | Gas contribution percentage |
-| `compensated_temperature` | C | Diagnostic |
-| `compensated_humidity` | % | Diagnostic |
+| `raw_temperature` | C | Diagnostic — uncompensated, includes sensor self-heating |
+| `raw_humidity` | % | Diagnostic — uncompensated, cross-influenced by heater |
 
 ### Important: Breath VOC vs TVOC Equivalent
 
