@@ -1,0 +1,4 @@
+.esphome/
+test.yaml
+__pycache__/
+example.yaml

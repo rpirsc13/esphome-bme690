@@ -1,0 +1,66 @@
+esphome:
+  name: bme690
+  friendly_name: BME690 Air Quality
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: github://sweitzja/esphome-bme690
+    components: [bme68x_bsec3]
+
+logger:
+api:
+ota:
+  platform: esphome
+
+# Adjust I2C pins for your board
+i2c:
+  scl: GPIO4
+  sda: GPIO5
+
+# BME690 via BSEC3
+bme68x_bsec3:
+  model: bme690            # bme690 or bme688
+  address: 0x77             # 0x77 (default) or 0x76
+  supply_voltage: 3.3V      # 3.3V or 1.8V
+  sample_rate: LP            # LP (3s) or ULP (300s)
+  operating_age: 28d         # 4d or 28d calibration history
+  temperature_offset: 0      # Heat compensation offset (degrees C)
+  state_save_interval: 6h    # How often to save BSEC calibration to flash
+
+sensor:
+  - platform: bme68x_bsec3
+    temperature:
+      name: "Temperature"
+    humidity:
+      name: "Humidity"
+    pressure:
+      name: "Pressure"
+    gas_resistance:
+      name: "Gas Resistance"
+    iaq:
+      name: "IAQ"
+    iaq_accuracy:
+      name: "IAQ Accuracy"
+    iaq_static:
+      name: "Static IAQ"
+    co2_equivalent:
+      name: "CO2 Equivalent"
+    breath_voc_equivalent:
+      name: "Breath VOC"
+    gas_percentage:
+      name: "Gas Percentage"
+    # Optional: raw (uncompensated) temperature and humidity
+    # compensated_temperature:
+    #   name: "Compensated Temperature"
+    # compensated_humidity:
+    #   name: "Compensated Humidity"
+
+text_sensor:
+  - platform: bme68x_bsec3
+    iaq_accuracy:
+      name: "IAQ Accuracy"
