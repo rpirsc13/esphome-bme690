@@ -180,7 +180,7 @@ async def to_code(config):
     # Build flags: include paths and FPU support
     cg.add_build_flag(f"-I{component_dir / 'bosch' / 'bsec3' / 'inc'}")
     cg.add_build_flag(f"-I{component_dir}")
-    cg.add_build_flag("-DBME69X_USE_FPU")
+    # BME69X_USE_FPU is defined in bme69x_defs.h already; no need to add it here
 
     # Link the arch-specific BSEC3 library
     arch = _get_bsec3_arch()
