@@ -19,7 +19,7 @@ Drop-in sensor platform providing Indoor Air Quality (IAQ), estimated CO2, VOC, 
 >
 > The Bosch BSEC library may only be used with Bosch BME688/BME690 sensors and may not be extracted, modified, reverse engineered, sublicensed, or redistributed separately except as permitted by Bosch.
 >
-> **Firmware binaries that include BSEC cannot be redistributed** per the Bosch license.
+> Redistribution of Bosch BSEC binaries, source materials, or derivative packages may be restricted by Bosch licensing terms. Review the Bosch license carefully before redistributing firmware or software packages that include BSEC components.
 
 ---
 
@@ -340,7 +340,7 @@ If you have a **BME680**, continue using the built-in `bme68x_bsec2` component. 
 ## Known Limitations
 
 - **ESP-IDF framework only** -- Arduino framework is not supported.
-- **BSEC is proprietary** -- the library is downloaded from Bosch at build time (it is not in this repository), and compiled firmware that includes BSEC cannot be freely redistributed per Bosch's license terms.
+- **BSEC is proprietary** -- the library is downloaded from Bosch at build time (it is not in this repository); redistributing firmware or packages that include BSEC may be restricted by Bosch's license terms, so review them carefully first.
 - **First build needs network access** -- the BSEC library and BME69x SensorAPI are downloaded on the first compile, then cached.
 - **Calibration takes time** -- IAQ accuracy 3 (fully calibrated) requires 24--48 hours of continuous operation.
 - **TVOC equivalent** -- only available in LP sample rate mode, not ULP.
