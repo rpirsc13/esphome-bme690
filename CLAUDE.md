@@ -168,3 +168,36 @@ esphome upload example.yaml --device 192.168.1.180
 - See `NOTICE` for full third-party attribution.
 
 To bump the BSEC version: update `BSEC3_VERSION`, `BSEC3_URL`, and the `BSEC3_LIB_SHA256` hashes in `__init__.py`. To bump the SensorAPI: update `BME69X_API_VERSION`.
+
+## License Compliance Record
+
+License compliance for the bundled Bosch dependencies was a deliberate, sustained effort on this project — not an afterthought. This section is the record of that work, the reasoning behind each decision, and how each step was verified. Maintainers must not regress any of these measures.
+
+### Starting point (the problem)
+
+Early revisions committed Bosch's proprietary BSEC `libalgobsec.a` binaries, BSEC headers, and BSEC config blobs directly into version control under `components/bme68x_bsec3/bosch/`. This put Bosch's proprietary software in the repository and its git history, with no accompanying license text, no provenance, and no separation from the MIT-licensed component code. The BME69x SensorAPI (BSD-3-Clause) was also vendored in-tree.
+
+### Measures taken
+
+Each item below was implemented, reviewed, and committed as a distinct, intentional step:
+
+1. **Explicit license boundary in the README** — added a prominent warning block stating BSEC is proprietary Bosch Sensortec software, that no rights are granted by this repository, that it may only be used with BME688/BME690 sensors, and that it must not be extracted/modified/reverse-engineered/sublicensed/redistributed except as Bosch permits.
+2. **Added a real `LICENSE` file** — MIT, with a preamble that explicitly scopes it to *only* the repository's own source code and disclaims any coverage of Bosch software. (Previously the README claimed "MIT" with no LICENSE file present at all.)
+3. **Added a `NOTICE` file** — full third-party attribution for both Bosch dependencies: copyright holders, license type, where each comes from, the proprietary-use restrictions, and SHA-256 checksums.
+4. **Investigated whether the binary could be obtained legitimately at build time** — confirmed Bosch publishes BSEC v3.3.0.0 at a stable, un-gated direct URL on their own CDN, and that the four committed `libalgobsec.a` files were bit-for-bit identical to that official release (verified by SHA-256). This established that a download-at-build-time model was both possible and faithful to Bosch's distribution.
+5. **Removed all Bosch software from version control** — `git rm` of the entire `bosch/` tree (binaries, headers, 26 config blobs) and the `bme69x.*` SensorAPI files. The repository now contains *only* the MIT component code. The downloaded copies are `.gitignored` so they cannot be re-committed accidentally.
+6. **Build-time download instead of redistribution** — `_download_dependencies()` in `__init__.py` fetches BSEC directly from Bosch's official URL and the SensorAPI from Bosch's GitHub repo. This repository never redistributes Bosch software; it points the build at Bosch's own distribution.
+7. **Affirmative license-acceptance gate** — `accept_bosch_license` is a `cv.Required` YAML option; the build fails with a message linking to Bosch's license agreement unless the user sets it to `true`. The proprietary download does not happen until the user has affirmatively accepted Bosch's terms.
+8. **Integrity / provenance verification** — every downloaded `libalgobsec.a` is checked against a pinned SHA-256 hash before it is linked; a mismatch fails the build. The SensorAPI is pinned to a specific release tag. This both detects tampering and proves the binaries are the unmodified Bosch release.
+9. **Version-bump procedure documented** — the "Licensing" section above records exactly which constants to update so future version bumps keep the checksums and provenance honest.
+10. **Redistribution language reviewed and tightened** — the README's statements about redistributing firmware that includes BSEC were revised to direct users to review Bosch's license themselves rather than make absolute claims.
+
+### Verification performed
+
+- Clean build from an empty cache on ESP32-S3: download → extract → SHA-256 verify → compile → link all succeed.
+- Negative tests: a corrupted cached binary fails the build with a checksum-mismatch error; a missing or `false` `accept_bosch_license` fails validation with a clear license message.
+- Confirmed the three downloaded BME69x SensorAPI files at tag `v1.1.0` are byte-identical to the versions previously vendored.
+
+### Net effect
+
+The repository ships only its own MIT-licensed code. Bosch's proprietary library is never stored or redistributed here, is fetched from Bosch's own servers, is integrity-checked, and is only obtained after the user has explicitly accepted Bosch's license. The BSD-3-Clause SensorAPI is attributed in `NOTICE` and fetched from Bosch's GitHub. (Note: the historical commits before this work still contain the old `bosch/` tree — a git history rewrite would be required to remove it from history entirely, and has not been done.)
