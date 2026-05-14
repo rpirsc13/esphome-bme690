@@ -13,7 +13,11 @@ Drop-in sensor platform providing Indoor Air Quality (IAQ), estimated CO2, VOC, 
 > **You must accept the license terms at:**
 > https://www.bosch-sensortec.com/en/software-tools/software/bme688-and-bme690-software/
 >
-> The precompiled binary is included in this repository for convenience only. Its use, copying, and distribution are governed entirely by Bosch's terms. **Firmware binaries that include BSEC cannot be redistributed** per the Bosch license.
+> This repository includes the unmodified Bosch BSEC static library solely to make ESPHome builds reproducible for users who have accepted Bosch's license terms. No rights to Bosch software are granted by this repository. If you do not or cannot accept Bosch's terms, do not use this component.
+>
+> The Bosch BSEC library may only be used with Bosch BME688/BME690 sensors and may not be extracted, modified, reverse engineered, sublicensed, or redistributed separately except as permitted by Bosch.
+>
+> **Firmware binaries that include BSEC cannot be redistributed** per the Bosch license.
 
 ---
 
@@ -343,6 +347,22 @@ The BME690 is the latest in Bosch's environmental sensor line: BME680 -> BME688 
 
 ## License
 
-- **Component code** (this repository, excluding BSEC): MIT
-- **BSEC library** (`libalgobsec.a`): Proprietary Bosch Sensortec license -- see [disclaimer](#esphome-bme690) above.
-- **BME69x SensorAPI**: BSD-3-Clause (Bosch Sensortec)
+- **Component code** (everything in this repository **except** the `components/bme68x_bsec3/bosch/` directory): MIT -- see [`LICENSE`](LICENSE).
+- **BSEC library** (`components/bme68x_bsec3/bosch/bsec3/lib/*/libalgobsec.a`): Proprietary Bosch Sensortec Software License Agreement. **Not** covered by the MIT license. See the warning at the top of this file.
+- **BSEC interface headers and config blobs** (`bosch/bsec3/inc/`, `bosch/bsec3/config/`): Bosch Sensortec, redistributed under the BSEC license terms.
+- **BME69x SensorAPI** (`bme69x.c`, `bme69x.h`, `bme69x_defs.h`): BSD-3-Clause (Bosch Sensortec).
+
+See [`NOTICE`](NOTICE) for the full third-party attribution list.
+
+### Why BSEC is bundled
+
+BSEC is included because ESPHome external components require a deterministic file layout during compilation. Without the library in the expected location, most users cannot practically build the component. This repository does not attempt to relicense Bosch software.
+
+The bundled libraries are the **unmodified** BSEC v3.3.0.0 release from Bosch Sensortec. SHA-256 checksums are published below so you can verify they have not been altered:
+
+| Architecture | File | SHA-256 |
+|---|---|---|
+| ESP32 | `bosch/bsec3/lib/esp32/libalgobsec.a` | `f4e3982b1499c3541cec1ce0bf8c15314d1441d6b8174193e7a3f9b52619b3e5` |
+| ESP32-S2 | `bosch/bsec3/lib/esp32_s2/libalgobsec.a` | `0a64955209b0756c1032700d0176e243d52077726ccba512ab841c9c7ecb02d0` |
+| ESP32-S3 | `bosch/bsec3/lib/esp32_s3/libalgobsec.a` | `11bd5b9494d59d0629218f6f00df795e12f5f9dde77046add83258231a09aec5` |
+| ESP32-C2 / C3 / C6 | `bosch/bsec3/lib/esp32_c2c3/libalgobsec.a` | `c244365ae47bc3dd008264378b81856650b0bcbeacdbf3acc1ee4566d51d380b` |

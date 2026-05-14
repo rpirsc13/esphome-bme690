@@ -1,0 +1,49 @@
+THIRD-PARTY NOTICES
+===================
+
+This repository bundles third-party software that is NOT covered by the MIT
+license in the LICENSE file. Each component below is subject to its own
+license terms.
+
+-------------------------------------------------------------------------------
+1. Bosch BSEC (Bosch Software Environmental Cluster) v3.3.0.0
+-------------------------------------------------------------------------------
+Files:
+  components/bme68x_bsec3/bosch/bsec3/lib/*/libalgobsec.a   (precompiled binary)
+  components/bme68x_bsec3/bosch/bsec3/inc/*.h
+  components/bme68x_bsec3/bosch/bsec3/config/**/bsec_iaq.*
+
+Copyright (c) Bosch Sensortec GmbH. All rights reserved.
+
+BSEC is proprietary software. Its use is governed solely by the Bosch Sensortec
+Software License Agreement, distributed by Bosch with the BSEC download at:
+  https://www.bosch-sensortec.com/en/software-tools/software/bme688-and-bme690-software/
+
+The library is bundled here, unmodified, only so that ESPHome can build this
+external component with its required deterministic file layout. No rights to
+Bosch software are granted by this repository. You must obtain and accept
+Bosch's license terms yourself. If you do not or cannot accept those terms, do
+not use this component.
+
+The Bosch BSEC library may only be used with Bosch BME688/BME690 sensors and
+may not be extracted, modified, reverse engineered, sublicensed, or
+redistributed separately except as permitted by Bosch.
+
+SHA-256 of the bundled, unmodified binaries:
+  esp32       f4e3982b1499c3541cec1ce0bf8c15314d1441d6b8174193e7a3f9b52619b3e5
+  esp32_s2    0a64955209b0756c1032700d0176e243d52077726ccba512ab841c9c7ecb02d0
+  esp32_s3    11bd5b9494d59d0629218f6f00df795e12f5f9dde77046add83258231a09aec5
+  esp32_c2c3  c244365ae47bc3dd008264378b81856650b0bcbeacdbf3acc1ee4566d51d380b
+
+-------------------------------------------------------------------------------
+2. Bosch BME69x SensorAPI v1.1.0
+-------------------------------------------------------------------------------
+Files:
+  components/bme68x_bsec3/bme69x.c
+  components/bme68x_bsec3/bme69x.h
+  components/bme68x_bsec3/bme69x_defs.h
+
+Copyright (c) 2025 Bosch Sensortec GmbH. All rights reserved.
+Licensed under the BSD-3-Clause license. See the license header in each file
+for the full license text.
+Source: https://github.com/boschsensortec/BME690_SensorAPI
