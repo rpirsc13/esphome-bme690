@@ -33,6 +33,7 @@ CONF_IAQ_STATIC = "iaq_static"
 CONF_CO2_EQUIVALENT = "co2_equivalent"
 CONF_BREATH_VOC_EQUIVALENT = "breath_voc_equivalent"
 CONF_GAS_PERCENTAGE = "gas_percentage"
+CONF_TVOC_EQUIVALENT = "tvoc_equivalent"
 CONF_COMPENSATED_TEMPERATURE = "compensated_temperature"
 CONF_COMPENSATED_HUMIDITY = "compensated_humidity"
 
@@ -103,6 +104,13 @@ CONFIG_SCHEMA = cv.Schema(
             state_class=STATE_CLASS_MEASUREMENT,
             icon=ICON_TEST_TUBE,
         ),
+        cv.Optional(CONF_TVOC_EQUIVALENT): sensor.sensor_schema(
+            unit_of_measurement="ppb",
+            accuracy_decimals=1,
+            state_class=STATE_CLASS_MEASUREMENT,
+            device_class=DEVICE_CLASS_VOLATILE_ORGANIC_COMPOUNDS_PARTS,
+            icon="mdi:cloud-outline",
+        ),
         cv.Optional(CONF_COMPENSATED_TEMPERATURE): sensor.sensor_schema(
             unit_of_measurement=UNIT_CELSIUS,
             accuracy_decimals=1,
@@ -135,6 +143,7 @@ async def to_code(config):
         (CONF_CO2_EQUIVALENT, parent.set_co2_equivalent_sensor),
         (CONF_BREATH_VOC_EQUIVALENT, parent.set_breath_voc_equivalent_sensor),
         (CONF_GAS_PERCENTAGE, parent.set_gas_percentage_sensor),
+        (CONF_TVOC_EQUIVALENT, parent.set_tvoc_equivalent_sensor),
         (CONF_COMPENSATED_TEMPERATURE, parent.set_compensated_temperature_sensor),
         (CONF_COMPENSATED_HUMIDITY, parent.set_compensated_humidity_sensor),
     ]:

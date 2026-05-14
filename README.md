@@ -156,16 +156,21 @@ sensor:
       name: "CO2 Equivalent"
 ```
 
-#### `breath_voc_equivalent` -- Estimated VOC
+#### `breath_voc_equivalent` -- Breath VOC (Legacy)
 
 - **Unit:** ppm
-- **Description:** Estimated total Volatile Organic Compound concentration based on the gas sensor response.
+- **Description:** Legacy BSEC2-compatible breath VOC sensor. **Not available in IAQ mode** -- always reads 0. Use `tvoc_equivalent` instead.
+
+#### `tvoc_equivalent` -- Total VOC Equivalent
+
+- **Unit:** ppb (parts per billion)
+- **Description:** Estimated Total Volatile Organic Compound concentration. This is the BSEC3 replacement for breath VOC. **Only available in LP sample rate mode** (not ULP).
 
 ```yaml
 sensor:
   - platform: bme68x_bsec3
-    breath_voc_equivalent:
-      name: "Breath VOC Equivalent"
+    tvoc_equivalent:
+      name: "TVOC"
 ```
 
 #### `gas_percentage` -- Gas Sensor Response

@@ -104,7 +104,7 @@ API encryption combined with multiple sensor publishes can overflow the W5500 Et
 
 ## Exposed Sensors
 
-### Numeric Sensors (12)
+### Numeric Sensors (13)
 
 | Sensor | Unit | Notes |
 |---|---|---|
@@ -116,10 +116,34 @@ API encryption combined with multiple sensor publishes can overflow the W5500 Et
 | `iaq_accuracy` | 0-3 | Numeric accuracy level |
 | `iaq_static` | 0-500 | Static IAQ (no recent history weighting) |
 | `co2_equivalent` | ppm | Estimated CO2 |
-| `breath_voc_equivalent` | ppm | Estimated breath VOC (LP only) |
+| `breath_voc_equivalent` | ppm | **Not available in IAQ mode** — always 0. Kept for BSEC2 compatibility. |
+| `tvoc_equivalent` | ppb | Total VOC equivalent (LP mode only) |
 | `gas_percentage` | % | Gas contribution percentage |
 | `compensated_temperature` | C | Diagnostic |
 | `compensated_humidity` | % | Diagnostic |
+
+### Important: Breath VOC vs TVOC Equivalent
+
+BSEC3 in IAQ mode does NOT output `BSEC_OUTPUT_BREATH_VOC_EQUIVALENT` (sensor ID 4). Subscribing to it crashes `bsec_update_subscription()`. Use `tvoc_equivalent` instead — this maps to `BSEC_OUTPUT_TVOC_EQUIVALENT` (sensor ID 31), available in LP mode only.
+
+### Available BSEC3 IAQ Mode Subscriptions (reference)
+
+The Bosch reference code subscribes to exactly these outputs in IAQ mode:
+1. RAW_PRESSURE (7)
+2. RAW_TEMPERATURE (6)
+3. RAW_HUMIDITY (8)
+4. RAW_GAS (9)
+5. IAQ (1)
+6. SENSOR_HEAT_COMPENSATED_TEMPERATURE (14)
+7. SENSOR_HEAT_COMPENSATED_HUMIDITY (15)
+8. STATIC_IAQ (2)
+9. CO2_EQUIVALENT (3)
+10. STABILIZATION_STATUS (12)
+11. RUN_IN_STATUS (13)
+12. GAS_PERCENTAGE (21)
+13. TVOC_EQUIVALENT (31) — LP mode only
+
+**NOT available in IAQ mode**: BREATH_VOC_EQUIVALENT (4), COMPENSATED_GAS (18)
 
 ### Text Sensor (1)
 

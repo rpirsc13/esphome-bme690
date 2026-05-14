@@ -69,6 +69,7 @@ class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
   void set_co2_equivalent_sensor(sensor::Sensor *s) { this->co2_equivalent_sensor_ = s; }
   void set_breath_voc_equivalent_sensor(sensor::Sensor *s) { this->breath_voc_equivalent_sensor_ = s; }
   void set_gas_percentage_sensor(sensor::Sensor *s) { this->gas_percentage_sensor_ = s; }
+  void set_tvoc_equivalent_sensor(sensor::Sensor *s) { this->tvoc_equivalent_sensor_ = s; }
   void set_compensated_temperature_sensor(sensor::Sensor *s) { this->compensated_temperature_sensor_ = s; }
   void set_compensated_humidity_sensor(sensor::Sensor *s) { this->compensated_humidity_sensor_ = s; }
 #endif
@@ -115,6 +116,7 @@ class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
     float co2_equivalent{0};
     float breath_voc_equivalent{0};
     float gas_percentage{0};
+    float tvoc_equivalent{0};
     float compensated_temperature{0};
     float compensated_humidity{0};
     bool valid{false};
@@ -149,6 +151,7 @@ class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
   sensor::Sensor *co2_equivalent_sensor_{nullptr};
   sensor::Sensor *breath_voc_equivalent_sensor_{nullptr};
   sensor::Sensor *gas_percentage_sensor_{nullptr};
+  sensor::Sensor *tvoc_equivalent_sensor_{nullptr};
   sensor::Sensor *compensated_temperature_sensor_{nullptr};
   sensor::Sensor *compensated_humidity_sensor_{nullptr};
 #endif

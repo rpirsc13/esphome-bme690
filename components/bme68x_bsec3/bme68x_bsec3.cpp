@@ -421,6 +421,9 @@ void BME68xBSEC3Component::process_sensor_data_(int64_t time_ns, struct bme69x_d
       case BSEC_OUTPUT_GAS_PERCENTAGE:
         new_data.gas_percentage = outputs[i].signal;
         break;
+      case BSEC_OUTPUT_TVOC_EQUIVALENT:
+        new_data.tvoc_equivalent = outputs[i].signal;
+        break;
       default:
         break;
     }
@@ -483,6 +486,8 @@ void BME68xBSEC3Component::update() {
     this->breath_voc_equivalent_sensor_->publish_state(data.breath_voc_equivalent);
   if (this->gas_percentage_sensor_ != nullptr)
     this->gas_percentage_sensor_->publish_state(data.gas_percentage);
+  if (this->tvoc_equivalent_sensor_ != nullptr)
+    this->tvoc_equivalent_sensor_->publish_state(data.tvoc_equivalent);
   if (this->compensated_temperature_sensor_ != nullptr)
     this->compensated_temperature_sensor_->publish_state(data.compensated_temperature);
   if (this->compensated_humidity_sensor_ != nullptr)

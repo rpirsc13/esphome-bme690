@@ -50,8 +50,8 @@ sensor:
       name: "Static IAQ"
     co2_equivalent:
       name: "CO2 Equivalent"
-    breath_voc_equivalent:
-      name: "Breath VOC"
+    tvoc_equivalent:
+      name: "TVOC"
     gas_percentage:
       name: "Gas Percentage"
     # Optional: raw (uncompensated) temperature and humidity
