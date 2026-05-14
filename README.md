@@ -8,12 +8,14 @@ Drop-in sensor platform providing Indoor Air Quality (IAQ), estimated CO2, VOC, 
 
 > **WARNING: BSEC License Agreement Required**
 >
-> This component includes the **Bosch BSEC v3.3.0.0 precompiled library** (`libalgobsec.a`), which is **proprietary software** owned by Bosch Sensortec GmbH. By using this component, you agree to the **Bosch Sensortec Software License Agreement**.
+> This component depends on the **Bosch BSEC v3.3.0.0** algorithm library (`libalgobsec.a`), which is **proprietary software** owned by Bosch Sensortec GmbH.
 >
-> **You must accept the license terms at:**
-> https://www.bosch-sensortec.com/en/software-tools/software/bme688-and-bme690-software/
+> **This repository does not contain and does not redistribute the BSEC library.** Instead, the build downloads it directly from Bosch Sensortec the first time you compile. You must still review and accept the **Bosch Sensortec Software License Agreement** yourself — downloading the library does not grant you any license to it. You confirm acceptance by setting `accept_bosch_license: true` in your YAML configuration; the build fails until you do.
 >
-> This repository includes the unmodified Bosch BSEC static library solely to make ESPHome builds reproducible for users who have accepted Bosch's license terms. No rights to Bosch software are granted by this repository. If you do not or cannot accept Bosch's terms, do not use this component.
+> **Review and accept the license terms at:**
+> https://www.bosch-sensortec.com/software-tools/software/bme688-and-bme690-software/
+>
+> No rights to Bosch software are granted by this repository. If you do not or cannot accept Bosch's terms, do not use this component.
 >
 > The Bosch BSEC library may only be used with Bosch BME688/BME690 sensors and may not be extracted, modified, reverse engineered, sublicensed, or redistributed separately except as permitted by Bosch.
 >
@@ -49,6 +51,7 @@ i2c:
 
 bme68x_bsec3:
   model: bme690
+  accept_bosch_license: true   # required — see the warning above
   address: 0x77
 
 sensor:
@@ -72,24 +75,37 @@ text_sensor:
 
 ```yaml
 bme68x_bsec3:
-  model: bme690            # bme690 or bme688
-  address: 0x77            # 0x77 (default) or 0x76
-  supply_voltage: 3.3V     # 3.3V or 1.8V
-  sample_rate: LP           # LP (3s) or ULP (300s)
-  operating_age: 28d        # 4d or 28d
-  temperature_offset: 0     # Heat compensation offset (°C)
-  state_save_interval: 6h   # BSEC calibration save interval
+  model: bme690                 # bme690 or bme688
+  accept_bosch_license: true    # required — confirms acceptance of Bosch's BSEC license
+  address: 0x77                 # 0x77 (default) or 0x76
+  supply_voltage: 3.3V          # 3.3V or 1.8V
+  sample_rate: LP               # LP (3s) or ULP (300s)
+  operating_age: 28d            # 4d or 28d
+  temperature_offset: 0         # Heat compensation offset (°C)
+  state_save_interval: 6h       # BSEC calibration save interval
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `model` | `bme690` | Sensor model: `bme690` or `bme688` |
+| `accept_bosch_license` | *(required)* | Must be `true`. Confirms you have accepted the [Bosch BSEC Software License Agreement](https://www.bosch-sensortec.com/software-tools/software/bme688-and-bme690-software/). The build fails without it. |
 | `address` | `0x77` | I2C address: `0x77` or `0x76` |
 | `supply_voltage` | `3.3V` | Sensor supply voltage: `3.3V` or `1.8V` |
 | `sample_rate` | `LP` | `LP` = Low Power (3s cycle), `ULP` = Ultra Low Power (300s cycle) |
 | `operating_age` | `28d` | Algorithm training period: `4d` or `28d` |
 | `temperature_offset` | `0` | Compensation for self-heating, in degrees Celsius |
 | `state_save_interval` | `6h` | How often BSEC calibration state is saved to flash |
+
+## Build-Time Downloads
+
+This repository contains only the ESPHome component code (MIT licensed). The Bosch dependencies are **downloaded automatically on first compile** — nothing Bosch-owned is committed to this repository:
+
+| Dependency | License | Source | Cached to |
+|---|---|---|---|
+| BSEC v3.3.0.0 (`libalgobsec.a`, headers, config blobs) | Proprietary (Bosch) | [Bosch Sensortec download](https://www.bosch-sensortec.com/software-tools/software/bme688-and-bme690-software/) | ESPHome data dir (`.esphome/bme68x_bsec3/`) |
+| BME69x SensorAPI v1.1.0 (`bme69x.c/.h/_defs.h`) | BSD-3-Clause | [boschsensortec/BME690_SensorAPI](https://github.com/boschsensortec/BME690_SensorAPI) | component directory |
+
+The downloaded BSEC binaries are verified against pinned SHA-256 checksums (see [Verifying the BSEC download](#verifying-the-bsec-download)); a mismatch fails the build. The BSEC download requires `accept_bosch_license: true` — see the warning at the top of this file.
 
 ## All Available Sensors
 
@@ -324,7 +340,8 @@ If you have a **BME680**, continue using the built-in `bme68x_bsec2` component. 
 ## Known Limitations
 
 - **ESP-IDF framework only** -- Arduino framework is not supported.
-- **BSEC is proprietary** -- compiled firmware that includes BSEC cannot be freely redistributed per Bosch's license terms.
+- **BSEC is proprietary** -- the library is downloaded from Bosch at build time (it is not in this repository), and compiled firmware that includes BSEC cannot be freely redistributed per Bosch's license terms.
+- **First build needs network access** -- the BSEC library and BME69x SensorAPI are downloaded on the first compile, then cached.
 - **Calibration takes time** -- IAQ accuracy 3 (fully calibrated) requires 24--48 hours of continuous operation.
 - **TVOC equivalent** -- only available in LP sample rate mode, not ULP.
 - **BME688 configuration limits** -- BME688 is limited to 3.3V / 28d configurations in BSEC3.
@@ -340,29 +357,30 @@ The BME690 is the latest in Bosch's environmental sensor line: BME680 -> BME688 
 
 ## References
 
-- [Bosch BME690 product page](https://www.bosch-sensortec.com/en/products/environmental-sensors/gas-sensors/bme690)
+- [Bosch BME690 product page](https://www.bosch-sensortec.com/products/environmental-sensors/gas-sensors/bme690/)
 - [BME690 SensorAPI (GitHub)](https://github.com/boschsensortec/BME690_SensorAPI)
-- [BSEC software download](https://www.bosch-sensortec.com/en/software-tools/software/bme688-and-bme690-software)
-- [BME690 datasheet (PDF)](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme690-ds001-00.pdf)
+- [BSEC software download](https://www.bosch-sensortec.com/software-tools/software/bme688-and-bme690-software/)
+- [BME690 datasheet (PDF)](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme690-ds001.pdf)
 
 ## License
 
-- **Component code** (everything in this repository **except** the `components/bme68x_bsec3/bosch/` directory): MIT -- see [`LICENSE`](LICENSE).
-- **BSEC library** (`components/bme68x_bsec3/bosch/bsec3/lib/*/libalgobsec.a`): Proprietary Bosch Sensortec Software License Agreement. **Not** covered by the MIT license. See the warning at the top of this file.
-- **BSEC interface headers and config blobs** (`bosch/bsec3/inc/`, `bosch/bsec3/config/`): Bosch Sensortec, redistributed under the BSEC license terms.
-- **BME69x SensorAPI** (`bme69x.c`, `bme69x.h`, `bme69x_defs.h`): BSD-3-Clause (Bosch Sensortec).
+- **Component code** (everything in this repository): MIT -- see [`LICENSE`](LICENSE). This repository contains only the ESPHome component; no Bosch software is committed to it.
+- **BSEC library** (`libalgobsec.a`, BSEC headers, config blobs): Proprietary Bosch Sensortec Software License Agreement. **Not** covered by the MIT license, and **not** distributed by this repository -- it is downloaded from Bosch Sensortec at build time. See the warning at the top of this file.
+- **BME69x SensorAPI** (`bme69x.c`, `bme69x.h`, `bme69x_defs.h`): BSD-3-Clause (Bosch Sensortec). Also not committed to this repository -- downloaded from GitHub at build time.
 
 See [`NOTICE`](NOTICE) for the full third-party attribution list.
 
-### Why BSEC is bundled
+### Why BSEC is downloaded at build time
 
-BSEC is included because ESPHome external components require a deterministic file layout during compilation. Without the library in the expected location, most users cannot practically build the component. This repository does not attempt to relicense Bosch software.
+ESPHome external components need the BSEC library available in a deterministic location during compilation. Rather than committing Bosch's proprietary binary to this repository, the build downloads it directly from Bosch Sensortec into the ESPHome data directory (`.esphome/bme68x_bsec3/`). This keeps the repository free of Bosch software while still giving users a one-step build. This repository does not attempt to relicense Bosch software.
 
-The bundled libraries are the **unmodified** BSEC v3.3.0.0 release from Bosch Sensortec. SHA-256 checksums are published below so you can verify they have not been altered:
+### Verifying the BSEC download
 
-| Architecture | File | SHA-256 |
+The build downloads the official BSEC v3.3.0.0 release and verifies each extracted `libalgobsec.a` against a pinned SHA-256 checksum before linking it -- a mismatch fails the build. The pinned checksums correspond to the **unmodified** binaries as published by Bosch Sensortec:
+
+| Architecture | File (inside the BSEC release zip) | SHA-256 |
 |---|---|---|
-| ESP32 | `bosch/bsec3/lib/esp32/libalgobsec.a` | `f4e3982b1499c3541cec1ce0bf8c15314d1441d6b8174193e7a3f9b52619b3e5` |
-| ESP32-S2 | `bosch/bsec3/lib/esp32_s2/libalgobsec.a` | `0a64955209b0756c1032700d0176e243d52077726ccba512ab841c9c7ecb02d0` |
-| ESP32-S3 | `bosch/bsec3/lib/esp32_s3/libalgobsec.a` | `11bd5b9494d59d0629218f6f00df795e12f5f9dde77046add83258231a09aec5` |
-| ESP32-C2 / C3 / C6 | `bosch/bsec3/lib/esp32_c2c3/libalgobsec.a` | `c244365ae47bc3dd008264378b81856650b0bcbeacdbf3acc1ee4566d51d380b` |
+| ESP32 | `release_bin/IAQ/bin/esp/esp32/libalgobsec.a` | `f4e3982b1499c3541cec1ce0bf8c15314d1441d6b8174193e7a3f9b52619b3e5` |
+| ESP32-S2 | `release_bin/IAQ/bin/esp/esp32_s2/libalgobsec.a` | `0a64955209b0756c1032700d0176e243d52077726ccba512ab841c9c7ecb02d0` |
+| ESP32-S3 | `release_bin/IAQ/bin/esp/esp32_s3/libalgobsec.a` | `11bd5b9494d59d0629218f6f00df795e12f5f9dde77046add83258231a09aec5` |
+| ESP32-C2 / C3 / C6 | `release_bin/IAQ/bin/esp/esp32_c2c3/libalgobsec.a` | `c244365ae47bc3dd008264378b81856650b0bcbeacdbf3acc1ee4566d51d380b` |

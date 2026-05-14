@@ -1,8 +1,9 @@
-The MIT license below applies ONLY to the original source code in this
-repository. It does NOT apply to third-party software bundled under
-`components/bme68x_bsec3/bosch/` (the Bosch BSEC library, BSEC interface
-headers, and BSEC configuration blobs), which is governed by separate
-proprietary terms. See the NOTICE file and README.md for details.
+The MIT license below applies to all source code in this repository.
+
+This repository does NOT contain any Bosch software. The Bosch BSEC library
+(proprietary) and the Bosch BME69x SensorAPI (BSD-3-Clause) are downloaded at
+build time and are governed by their own separate license terms -- see the
+NOTICE file and README.md for details.
 
 -------------------------------------------------------------------------------
 

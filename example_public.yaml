@@ -25,6 +25,10 @@ i2c:
 # BME690 via BSEC3
 bme68x_bsec3:
   model: bme690            # bme690 or bme688
+  # The build downloads the proprietary Bosch BSEC library. Setting this to
+  # true confirms you have accepted Bosch's Software License Agreement:
+  # https://www.bosch-sensortec.com/software-tools/software/bme688-and-bme690-software/
+  accept_bosch_license: true
   address: 0x77             # 0x77 (default) or 0x76
   supply_voltage: 3.3V      # 3.3V or 1.8V
   sample_rate: LP            # LP (3s) or ULP (300s)

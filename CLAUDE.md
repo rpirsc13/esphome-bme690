@@ -7,36 +7,31 @@ Developer reference for the `bme68x_bsec3` ESPHome external component. Supports 
 - ESPHome external component providing IAQ (Indoor Air Quality), CO2 equivalent, breath VOC equivalent, gas percentage, and compensated temperature/humidity
 - Uses a dedicated FreeRTOS task for BSEC processing (same pattern as the BMV080 component)
 - ESP-IDF framework only — no Arduino dependency
-- BSEC3 precompiled binary library (`libalgobsec.a`) bundled for ESP32, ESP32-S2, ESP32-S3, ESP32-C2/C3
+- **No Bosch software is committed to this repo.** The build downloads it: the proprietary BSEC3 library (`libalgobsec.a`, headers, config blobs) from Bosch Sensortec, and the BSD-3-Clause BME69x SensorAPI from GitHub. Downloaded BSEC binaries are verified against pinned SHA-256 checksums; the BSEC download is gated on `accept_bosch_license: true`.
 
 ## Repository Layout
 
 ```
 esphome-bme690/
 ├── CLAUDE.md                    # This file
+├── LICENSE                      # MIT (component code only)
+├── NOTICE                       # Third-party attribution (downloaded deps)
 ├── example_public.yaml          # Public example config (no credentials)
 ├── components/
 │   └── bme68x_bsec3/
-│       ├── __init__.py          # YAML config schema, codegen, BSEC3 library linking
+│       ├── __init__.py          # Config schema, codegen, dependency download
 │       ├── sensor.py            # 12 sensor platform definitions
 │       ├── text_sensor.py       # IAQ accuracy text sensor
-│       ├── bme68x_bsec3.h      # Component class declaration
-│       ├── bme68x_bsec3.cpp    # Implementation (FreeRTOS task, BSEC3 integration)
-│       ├── bme69x.c            # Bosch BME69x sensor API driver
-│       ├── bme69x.h            # Sensor API header
-│       ├── bme69x_defs.h       # Sensor API definitions
-│       └── bosch/
-│           └── bsec3/
-│               ├── inc/         # bsec_interface.h, bsec_datatypes.h
-│               ├── lib/         # Precompiled libalgobsec.a per architecture
-│               │   ├── esp32/
-│               │   ├── esp32_s2/
-│               │   ├── esp32_s3/
-│               │   └── esp32_c2c3/
-│               └── config/      # BSEC config blobs per model/voltage/rate/age
-│                   ├── bme690/  # 8 configurations
-│                   └── bme688/  # 2 configurations
+│       ├── bme68x_bsec3.h       # Component class declaration
+│       ├── bme68x_bsec3.cpp     # Implementation (FreeRTOS task, BSEC3 integration)
+│       └── bme69x.{c,h}, bme69x_defs.h  # Downloaded at build time (.gitignored)
 ```
+
+**Nothing Bosch-owned is committed.** At build time `__init__.py` downloads:
+- BSEC3 (`libalgobsec.a`, headers, config blobs) → `.esphome/bme68x_bsec3/bsec_v3.3.0.0/`
+  (ESPHome data dir), extracted from the official Bosch zip and SHA-256 verified.
+- BME69x SensorAPI (`bme69x.c/.h/_defs.h`) → into the component dir, so ESPHome
+  auto-compiles `bme69x.c` (see Critical Technical Note #2).
 
 ## Architecture
 
@@ -52,11 +47,11 @@ Without this, `USE_SENSOR`, `USE_TEXT_SENSOR`, etc. are not defined, causing all
 
 ### 2. BME69x sensor driver files must be in the component root directory
 
-The files `bme69x.c`, `bme69x.h`, and `bme69x_defs.h` are placed directly in `components/bme68x_bsec3/` for ESPHome auto-compilation. They cannot be moved to a subdirectory without adding extra build configuration.
+The files `bme69x.c`, `bme69x.h`, and `bme69x_defs.h` must sit directly in `components/bme68x_bsec3/` for ESPHome to auto-compile `bme69x.c`. They cannot be moved to a subdirectory without adding extra build configuration. They are **not committed** — `_download_dependencies()` in `__init__.py` downloads them there at config-validation time (and they are `.gitignored`). This works because ESPHome enumerates a component's source files dynamically (`loader.py` `resources` property) at the copy stage, which runs *after* validation.
 
 ### 3. BSEC3 config blob embedding
 
-Config blobs are embedded via `cg.progmem_array()` — parsed from the `bsec_iaq.c` files at build time, not compiled as separate C files.
+Config blobs are embedded via `cg.progmem_array()` — parsed from the downloaded `bsec_iaq.c` files at build time, not compiled as separate C files.
 
 ### 4. Config blob naming convention
 
@@ -165,6 +160,11 @@ esphome compile example.yaml
 esphome upload example.yaml --device 192.168.1.180
 ```
 
-## BSEC3 License
+## Licensing
 
-The BSEC library (`libalgobsec.a`) is proprietary Bosch Sensortec software. Users must accept the Bosch BSEC Software License Agreement. The precompiled binary is bundled in this repo for convenience but remains subject to Bosch's terms.
+- **Component code** (this repo): MIT — see `LICENSE`.
+- **BSEC library**: proprietary Bosch Sensortec software. **Not committed** — downloaded from Bosch at build time. Gated on `accept_bosch_license: true` (a `cv.Required` option validated by `_accept_bosch_license`); the build fails otherwise. Downloaded binaries are SHA-256 verified against pinned hashes in `__init__.py`.
+- **BME69x SensorAPI**: BSD-3-Clause — also not committed, downloaded from GitHub at build time.
+- See `NOTICE` for full third-party attribution.
+
+To bump the BSEC version: update `BSEC3_VERSION`, `BSEC3_URL`, and the `BSEC3_LIB_SHA256` hashes in `__init__.py`. To bump the SensorAPI: update `BME69X_API_VERSION`.

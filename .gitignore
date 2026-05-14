@@ -2,3 +2,12 @@
 test.yaml
 __pycache__/
 example.yaml
+
+# Bosch software is downloaded at build time, never committed.
+# BME69x SensorAPI (BSD-3-Clause) — fetched into the component directory.
+components/bme68x_bsec3/bme69x.c
+components/bme68x_bsec3/bme69x.h
+components/bme68x_bsec3/bme69x_defs.h
+# BSEC library (proprietary) — extracted to the ESPHome cache, but ignore
+# this path too in case an older build left it behind.
+components/bme68x_bsec3/bosch/
