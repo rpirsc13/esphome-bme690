@@ -20,7 +20,7 @@ namespace bme68x_bsec3 {
 
 static const char *const TAG = "bme68x_bsec3";
 
-static const uint32_t BSEC_TASK_STACK_SIZE = 8192;
+static const uint32_t BSEC_TASK_STACK_SIZE = 60 * 1024;
 static const uint32_t BSEC_TASK_PRIORITY = 5;
 static const uint32_t BSEC_TASK_STARTUP_DELAY_MS = 5000;
 
