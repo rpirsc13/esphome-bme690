@@ -79,12 +79,13 @@ class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
 #endif
 
  protected:
-  // FreeRTOS task
+  // FreeRTOS task — sensor/BSEC init deferred here (after WiFi), matching BlackIoT POLVERINE firmware
   static void bsec_task_(void *param);
+  bool init_sensor_();
   void bsec_task_main_();
 
   // BSEC helpers
-  void init_bsec_();
+  bool init_bsec_();
   void subscribe_outputs_();
   void process_sensor_data_(int64_t time_ns, struct bme69x_data *data, uint32_t process_data);
   void save_state_();
@@ -97,6 +98,8 @@ class BME68xBSEC3Component : public PollingComponent, public i2c::I2CDevice {
 
   // BSEC3 instance memory (dynamically allocated via bsec_get_instance_size())
   uint8_t *bsec_instance_{nullptr};
+  uint8_t *bsec_work_buffer_{nullptr};
+  bool initialized_{false};
 
   // BME69x device
   struct bme69x_dev bme69x_dev_{};
