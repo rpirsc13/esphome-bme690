@@ -20,9 +20,11 @@ namespace bme68x_bsec3 {
 
 static const char *const TAG = "bme68x_bsec3";
 
+// BlackIoT POLVERINE reference firmware uses 60 KB task stack.
 static const uint32_t BSEC_TASK_STACK_SIZE = 60 * 1024;
 static const uint32_t BSEC_TASK_PRIORITY = 5;
-static const uint32_t BSEC_TASK_STARTUP_DELAY_MS = 5000;
+// Defer BSEC/I2C init until after WiFi PHY init completes.
+static const uint32_t BSEC_TASK_STARTUP_DELAY_MS = 10000;
 
 // NVS key for BSEC state persistence
 static const uint32_t BSEC_STATE_HASH = 0xB5EC0003;
@@ -52,13 +54,13 @@ void BME68xBSEC3Component::delay_us_(uint32_t period, void *intf_ptr) {
 // --- Component Lifecycle ---
 
 float BME68xBSEC3Component::get_setup_priority() const {
-  return setup_priority::DATA;
+  // Run after WiFi; BSEC/I2C init happens in the background task.
+  return setup_priority::LATE;
 }
 
 void BME68xBSEC3Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up BME68x BSEC3...");
 
-  // Create mutex for shared sensor data
   this->data_mutex_ = xSemaphoreCreateMutex();
   if (this->data_mutex_ == nullptr) {
     this->mark_failed();
@@ -66,38 +68,6 @@ void BME68xBSEC3Component::setup() {
     return;
   }
 
-  // Initialize BME69x device struct
-  this->bme69x_dev_.intf = BME69X_I2C_INTF;
-  this->bme69x_dev_.read = i2c_read_;
-  this->bme69x_dev_.write = i2c_write_;
-  this->bme69x_dev_.delay_us = delay_us_;
-  this->bme69x_dev_.intf_ptr = this;
-  this->bme69x_dev_.amb_temp = 25;  // Initial ambient temp estimate
-
-  // Initialize BME69x sensor
-  int8_t bme_status = bme69x_init(&this->bme69x_dev_);
-  if (bme_status != BME69X_OK) {
-    this->mark_failed();
-    ESP_LOGE(TAG, "BME69x init failed: %d", bme_status);
-    return;
-  }
-  ESP_LOGI(TAG, "BME69x chip ID: 0x%02X", this->bme69x_dev_.chip_id);
-
-  // Allocate BSEC3 instance memory
-  size_t instance_size = bsec_get_instance_size();
-  this->bsec_instance_ = (uint8_t *) malloc(instance_size);
-  if (this->bsec_instance_ == nullptr) {
-    this->mark_failed();
-    ESP_LOGE(TAG, "Failed to allocate BSEC instance (%u bytes)", instance_size);
-    return;
-  }
-  memset(this->bsec_instance_, 0, instance_size);
-  ESP_LOGI(TAG, "BSEC instance allocated: %u bytes", instance_size);
-
-  // Initialize BSEC3 instance
-  this->init_bsec_();
-
-  // Launch dedicated FreeRTOS task for BSEC processing
   auto result = xTaskCreatePinnedToCore(
       bsec_task_, "bsec3", BSEC_TASK_STACK_SIZE, this,
       BSEC_TASK_PRIORITY, &this->task_handle_, 1);
@@ -107,47 +77,85 @@ void BME68xBSEC3Component::setup() {
     return;
   }
 
-  ESP_LOGI(TAG, "BSEC3 task started");
+  ESP_LOGI(TAG, "BSEC3 task created (sensor init deferred)");
 }
 
-void BME68xBSEC3Component::init_bsec_() {
-  uint8_t work_buffer[BSEC_MAX_WORKBUFFER_SIZE];
+bool BME68xBSEC3Component::init_sensor_() {
+  ESP_LOGI(TAG, "Initializing BME690 and BSEC3...");
 
-  // Initialize BSEC library instance
-  bsec_library_return_t bsec_status = bsec_init(this->bsec_instance_);
-  if (bsec_status != BSEC_OK) {
-    this->mark_failed();
-    ESP_LOGE(TAG, "BSEC init failed: %d", bsec_status);
-    return;
+  this->bme69x_dev_.intf = BME69X_I2C_INTF;
+  this->bme69x_dev_.read = i2c_read_;
+  this->bme69x_dev_.write = i2c_write_;
+  this->bme69x_dev_.delay_us = delay_us_;
+  this->bme69x_dev_.intf_ptr = this;
+  this->bme69x_dev_.amb_temp = 25;
+
+  int8_t bme_status = bme69x_init(&this->bme69x_dev_);
+  if (bme_status != BME69X_OK) {
+    ESP_LOGE(TAG, "BME69x init failed: %d", bme_status);
+    return false;
+  }
+  ESP_LOGI(TAG, "BME69x chip ID: 0x%02X", this->bme69x_dev_.chip_id);
+
+  size_t instance_size = bsec_get_instance_size();
+  this->bsec_instance_ = (uint8_t *) malloc(instance_size);
+  if (this->bsec_instance_ == nullptr) {
+    ESP_LOGE(TAG, "Failed to allocate BSEC instance (%u bytes)", instance_size);
+    return false;
+  }
+  memset(this->bsec_instance_, 0, instance_size);
+  ESP_LOGI(TAG, "BSEC instance allocated: %u bytes", instance_size);
+
+  this->bsec_work_buffer_ = (uint8_t *) malloc(BSEC_MAX_WORKBUFFER_SIZE);
+  if (this->bsec_work_buffer_ == nullptr) {
+    ESP_LOGE(TAG, "Failed to allocate BSEC work buffer (%u bytes)", BSEC_MAX_WORKBUFFER_SIZE);
+    return false;
   }
 
-  // Log version
+  if (!this->init_bsec_()) {
+    return false;
+  }
+
+  this->initialized_ = true;
+  ESP_LOGI(TAG, "BME690 and BSEC3 initialized");
+  return true;
+}
+
+bool BME68xBSEC3Component::init_bsec_() {
+  bsec_library_return_t bsec_status = bsec_init(this->bsec_instance_);
+  if (bsec_status != BSEC_OK) {
+    ESP_LOGE(TAG, "BSEC init failed: %d", bsec_status);
+    return false;
+  }
+
   bsec_version_t version;
   bsec_get_version(this->bsec_instance_, &version);
   ESP_LOGI(TAG, "BSEC version: %d.%d.%d.%d", version.major, version.minor,
            version.major_bugfix, version.minor_bugfix);
 
-  // Apply config blob
   if (this->bsec3_config_data_ != nullptr && this->bsec3_config_length_ > 0) {
-    // Copy from PROGMEM
-    uint8_t config_buf[BSEC_MAX_PROPERTY_BLOB_SIZE];
+    auto *config_buf = (uint8_t *) malloc(BSEC_MAX_PROPERTY_BLOB_SIZE);
+    if (config_buf == nullptr) {
+      ESP_LOGE(TAG, "Failed to allocate BSEC config buffer");
+      return false;
+    }
     memcpy(config_buf, this->bsec3_config_data_, this->bsec3_config_length_);
 
     bsec_status = bsec_set_configuration(
         this->bsec_instance_, config_buf, this->bsec3_config_length_,
-        work_buffer, sizeof(work_buffer));
+        this->bsec_work_buffer_, BSEC_MAX_WORKBUFFER_SIZE);
+    free(config_buf);
+
     if (bsec_status != BSEC_OK) {
-      ESP_LOGW(TAG, "BSEC set_configuration failed: %d", bsec_status);
-    } else {
-      ESP_LOGI(TAG, "BSEC config applied (%u bytes)", this->bsec3_config_length_);
+      ESP_LOGE(TAG, "BSEC set_configuration failed: %d", bsec_status);
+      return false;
     }
+    ESP_LOGI(TAG, "BSEC config applied (%u bytes)", this->bsec3_config_length_);
   }
 
-  // Load saved state from NVS
   this->load_state_();
-
-  // Subscribe to BSEC outputs
   this->subscribe_outputs_();
+  return true;
 }
 
 void BME68xBSEC3Component::subscribe_outputs_() {
@@ -176,14 +184,10 @@ void BME68xBSEC3Component::subscribe_outputs_() {
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_STATIC_IAQ};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_CO2_EQUIVALENT};
-  // Note: BSEC_OUTPUT_BREATH_VOC_EQUIVALENT not subscribed — BSEC3 derives
-  // breath VOC from CO2 equivalent internally, no separate subscription needed.
-  // Adding it causes bsec_update_subscription() to fail.
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_STABILIZATION_STATUS};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_RUN_IN_STATUS};
   requested[n_requested++] = {sample_rate, BSEC_OUTPUT_GAS_PERCENTAGE};
 
-  // TVOC equivalent only available in LP mode
   if (this->sample_rate_ == SAMPLE_RATE_LP) {
     requested[n_requested++] = {sample_rate, BSEC_OUTPUT_TVOC_EQUIVALENT};
   }
@@ -205,10 +209,18 @@ void BME68xBSEC3Component::subscribe_outputs_() {
 void BME68xBSEC3Component::bsec_task_(void *param) {
   auto *self = static_cast<BME68xBSEC3Component *>(param);
 
-  // Wait for system stabilization
   vTaskDelay(pdMS_TO_TICKS(BSEC_TASK_STARTUP_DELAY_MS));
-  ESP_LOGI(TAG, "BSEC task running");
+  ESP_LOGI(TAG, "BSEC task starting sensor init");
 
+  if (!self->init_sensor_()) {
+    self->mark_failed();
+    ESP_LOGE(TAG, "BSEC sensor init failed");
+    self->task_handle_ = nullptr;
+    vTaskDelete(nullptr);
+    return;
+  }
+
+  ESP_LOGI(TAG, "BSEC task running");
   self->bsec_task_main_();
 }
 
@@ -223,7 +235,6 @@ void BME68xBSEC3Component::bsec_task_main_() {
     int64_t time_ns = (int64_t) esp_timer_get_time() * INT64_C(1000);
 
     if (time_ns >= sensor_settings.next_call) {
-      // Get BSEC sensor control settings
       bsec_library_return_t status = bsec_sensor_control(
           this->bsec_instance_, time_ns, &sensor_settings);
       if (status != BSEC_OK) {
@@ -232,7 +243,6 @@ void BME68xBSEC3Component::bsec_task_main_() {
         continue;
       }
 
-      // Configure sensor based on BSEC requirements
       switch (sensor_settings.op_mode) {
         case BME69X_FORCED_MODE: {
           bme69x_set_op_mode(BME69X_SLEEP_MODE, &this->bme69x_dev_);
@@ -286,7 +296,6 @@ void BME68xBSEC3Component::bsec_task_main_() {
           break;
       }
 
-      // Read sensor data and process through BSEC
       if (sensor_settings.trigger_measurement && sensor_settings.op_mode != BME69X_SLEEP_MODE) {
         n_fields = 0;
         int8_t bme_status = bme69x_get_data(
@@ -299,7 +308,6 @@ void BME68xBSEC3Component::bsec_task_main_() {
         }
       }
 
-      // Periodic state save
       uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
       if (now_ms - this->last_state_save_ms_ >= this->state_save_interval_ms_) {
         this->save_state_();
@@ -307,7 +315,6 @@ void BME68xBSEC3Component::bsec_task_main_() {
       }
     }
 
-    // Sleep until next BSEC call
     int64_t now_us = esp_timer_get_time();
     int64_t next_us = sensor_settings.next_call / 1000;
     int64_t sleep_ms = (next_us - now_us) / 1000;
@@ -354,23 +361,21 @@ void BME68xBSEC3Component::process_sensor_data_(int64_t time_ns, struct bme69x_d
     n_inputs++;
   }
 
-  // Heat source compensation
   inputs[n_inputs].sensor_id = BSEC_INPUT_HEATSOURCE;
   inputs[n_inputs].signal = this->temperature_offset_;
   inputs[n_inputs].time_stamp = time_ns;
   n_inputs++;
 
-  // Baseline tracker for LP mode
   if (this->sample_rate_ == SAMPLE_RATE_LP) {
     inputs[n_inputs].sensor_id = BSEC_INPUT_DISABLE_BASELINE_TRACKER;
-    inputs[n_inputs].signal = 0;  // Baseline tracking enabled
+    inputs[n_inputs].signal = 0;
     inputs[n_inputs].time_stamp = time_ns;
     n_inputs++;
   }
 
-  if (n_inputs == 0) return;
+  if (n_inputs == 0)
+    return;
 
-  // Run BSEC algorithm
   bsec_output_t outputs[BSEC_NUMBER_OUTPUTS];
   uint8_t n_outputs = BSEC_NUMBER_OUTPUTS;
 
@@ -381,9 +386,9 @@ void BME68xBSEC3Component::process_sensor_data_(int64_t time_ns, struct bme69x_d
     return;
   }
 
-  if (n_outputs == 0) return;
+  if (n_outputs == 0)
+    return;
 
-  // Parse outputs and update shared struct
   SensorData new_data{};
   for (uint8_t i = 0; i < n_outputs; i++) {
     switch (outputs[i].sensor_id) {
@@ -394,7 +399,7 @@ void BME68xBSEC3Component::process_sensor_data_(int64_t time_ns, struct bme69x_d
         new_data.humidity = outputs[i].signal;
         break;
       case BSEC_OUTPUT_RAW_PRESSURE:
-        new_data.pressure = outputs[i].signal / 100.0f;  // Pa to hPa
+        new_data.pressure = outputs[i].signal / 100.0f;
         break;
       case BSEC_OUTPUT_RAW_GAS:
         new_data.gas_resistance = outputs[i].signal;
@@ -430,7 +435,6 @@ void BME68xBSEC3Component::process_sensor_data_(int64_t time_ns, struct bme69x_d
   }
   new_data.valid = true;
 
-  // Copy to shared struct under mutex
   if (this->data_mutex_ != nullptr) {
     xSemaphoreTake(this->data_mutex_, portMAX_DELAY);
   }
@@ -441,17 +445,13 @@ void BME68xBSEC3Component::process_sensor_data_(int64_t time_ns, struct bme69x_d
   }
 }
 
-// --- Main Loop (publishes sensor values) ---
-
-void BME68xBSEC3Component::loop() {
-}
+void BME68xBSEC3Component::loop() {}
 
 void BME68xBSEC3Component::update() {
   if (!this->data_available_) {
     return;
   }
 
-  // Copy data under mutex protection, then release immediately
   SensorData data;
   if (this->data_mutex_ != nullptr) {
     xSemaphoreTake(this->data_mutex_, portMAX_DELAY);
@@ -526,22 +526,21 @@ void BME68xBSEC3Component::update() {
 #endif
 }
 
-// --- State Persistence ---
-
 void BME68xBSEC3Component::save_state_() {
+  if (this->bsec_instance_ == nullptr || this->bsec_work_buffer_ == nullptr)
+    return;
+
   uint8_t state_buffer[BSEC_MAX_STATE_BLOB_SIZE];
-  uint8_t work_buffer[BSEC_MAX_WORKBUFFER_SIZE];
   uint32_t state_length = 0;
 
   bsec_library_return_t status = bsec_get_state(
       this->bsec_instance_, 0, state_buffer, sizeof(state_buffer),
-      work_buffer, sizeof(work_buffer), &state_length);
+      this->bsec_work_buffer_, BSEC_MAX_WORKBUFFER_SIZE, &state_length);
   if (status != BSEC_OK) {
     ESP_LOGW(TAG, "Failed to get BSEC state: %d", status);
     return;
   }
 
-  // Save to NVS via ESPHome preferences
   auto pref = global_preferences->make_preference<uint8_t[BSEC_MAX_STATE_BLOB_SIZE]>(BSEC_STATE_HASH);
   uint8_t save_buf[BSEC_MAX_STATE_BLOB_SIZE]{};
   memcpy(save_buf, state_buffer, state_length);
@@ -552,6 +551,9 @@ void BME68xBSEC3Component::save_state_() {
 }
 
 void BME68xBSEC3Component::load_state_() {
+  if (this->bsec_instance_ == nullptr || this->bsec_work_buffer_ == nullptr)
+    return;
+
   auto pref = global_preferences->make_preference<uint8_t[BSEC_MAX_STATE_BLOB_SIZE]>(BSEC_STATE_HASH);
   uint8_t state_buffer[BSEC_MAX_STATE_BLOB_SIZE]{};
 
@@ -560,10 +562,9 @@ void BME68xBSEC3Component::load_state_() {
     return;
   }
 
-  uint8_t work_buffer[BSEC_MAX_WORKBUFFER_SIZE];
   bsec_library_return_t status = bsec_set_state(
       this->bsec_instance_, state_buffer, BSEC_MAX_STATE_BLOB_SIZE,
-      work_buffer, sizeof(work_buffer));
+      this->bsec_work_buffer_, BSEC_MAX_WORKBUFFER_SIZE);
   if (status != BSEC_OK) {
     ESP_LOGW(TAG, "Failed to restore BSEC state: %d", status);
   } else {
@@ -571,21 +572,25 @@ void BME68xBSEC3Component::load_state_() {
   }
 }
 
-// --- Dump Config ---
-
 void BME68xBSEC3Component::dump_config() {
   ESP_LOGCONFIG(TAG, "BME68x BSEC3:");
-  ESP_LOGCONFIG(TAG, "  Chip ID: 0x%02X", this->bme69x_dev_.chip_id);
+  if (this->initialized_) {
+    ESP_LOGCONFIG(TAG, "  Chip ID: 0x%02X", this->bme69x_dev_.chip_id);
+  } else {
+    ESP_LOGCONFIG(TAG, "  Chip ID: (init deferred to background task)");
+  }
   ESP_LOGCONFIG(TAG, "  Sample Rate: %s", this->sample_rate_ == SAMPLE_RATE_LP ? "LP (3s)" : "ULP (300s)");
   ESP_LOGCONFIG(TAG, "  Supply Voltage: %s", this->supply_voltage_ == SUPPLY_VOLTAGE_3V3 ? "3.3V" : "1.8V");
   ESP_LOGCONFIG(TAG, "  Operating Age: %s", this->operating_age_ == OPERATING_AGE_28D ? "28 days" : "4 days");
   ESP_LOGCONFIG(TAG, "  Temperature Offset: %.2f", this->temperature_offset_);
   ESP_LOGCONFIG(TAG, "  State Save Interval: %us", this->state_save_interval_ms_ / 1000);
 
-  bsec_version_t version;
-  if (bsec_get_version(this->bsec_instance_, &version) == BSEC_OK) {
-    ESP_LOGCONFIG(TAG, "  BSEC Version: %d.%d.%d.%d", version.major, version.minor,
-                  version.major_bugfix, version.minor_bugfix);
+  if (this->bsec_instance_ != nullptr) {
+    bsec_version_t version;
+    if (bsec_get_version(this->bsec_instance_, &version) == BSEC_OK) {
+      ESP_LOGCONFIG(TAG, "  BSEC Version: %d.%d.%d.%d", version.major, version.minor,
+                    version.major_bugfix, version.minor_bugfix);
+    }
   }
 
   LOG_I2C_DEVICE(this);
